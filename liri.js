@@ -32,6 +32,7 @@ const spotify = new Spotify(keys.spotify);
 
 // switch which contains commands for LIRI as cases
 switch (command) {
+
     case 'spotify-this-song':
         spotify
             .search({ type: 'track', query: option || 'The Sign' })
@@ -53,7 +54,7 @@ switch (command) {
 
     case 'movie-this':
         const OMDbUrl = `http://www.omdbapi.com/?apikey=${process.env.OMDb_key}&t=${option || 'Mr.%20Nobody'}`;
-        const promise = new Promise((resolve, reject) => {
+        const OMDbPromise = new Promise((resolve, reject) => {
             request.get(OMDbUrl, (err, res, body) => {
                 if (err) {
                     reject(`Error: ${err}`);
@@ -67,7 +68,7 @@ switch (command) {
             });
         });
 
-        promise.then((body) => {
+        OMDbPromise.then((body) => {
             console.log(`Title: ${body.Title} \n`
                 + `Released: ${body.Year}\n`
                 + `IMDB Rating: ${body.imdbRating}\n`
@@ -75,15 +76,45 @@ switch (command) {
                 + `Produced in: ${body.Country}\n`
                 + `Language: ${body.Language}\n`
                 + `Actors/Actresses: ${body.Actors}\n`
-                + `Plot: ${body.Plot}`)
+                + `Plot: ${body.Plot}`);
         });
-        promise.catch((err) => console.log(err));
+        OMDbPromise.catch((err) => console.log(err));
+
+        break;
+
+        case 'concert-this':
+        const bandsUrl = `https://rest.bandsintown.com/artists/${option || 'Coldplay'}/events?app_id=${process.env.bandsintown_id}`;
+        const bandsPromise = new Promise((resolve, reject) => {
+            request.get(bandsUrl, (err, res, body) => {
+                if (err) {
+                    reject(`Error: ${err}`);
+                    return;
+                }
+                if (res.statusCode !== 200) {
+                    reject(`Error: ${body}`);
+                    return;
+                }
+                
+                resolve(JSON.parse(body));
+            });
+        });
+
+        bandsPromise.then((body) => {
+            if (body.length === 0) {
+                console.log('Sorry, no upcoming concerts found.');
+            } else {console.log(`Location: ${body[0].venue.city}, ${body[0].venue.region} ${body[0].venue.country}\n`
+            + `Venue name: ${body[0].venue.name}\n`
+            + `Time: ${moment(body[0].datetime).format('MM/DD/YYYY')}`);
+            }
+        });
+        bandsPromise.catch((err) => console.log(err));
 
         break;
 
     default:
-        console.log('LIRI commands: \n'
-            + 'spotify-this-song "<song name>" -- returns song name, artist(s), album, and a preview link from Spotify. \n'
-            + 'movie-this "<Movie name>" -- returns title, release year, IMDB rating, Rotten Tomatoes rating, country of origin, language, plot, and actors in the movie from OMDb.\n'
-            + 'do-what-it-says -- Reads the command written in random.txt and runs said command.')
+        console.log('LIRI commands: \n\n'
+            + 'spotify-this-song "<song name>" -- returns song name, artist(s), album, and a preview link from Spotify\n\n'
+            + 'movie-this "<movie name>" -- returns title, release year, IMDB rating, Rotten Tomatoes rating, country of origin, language, plot, and actors in the movie from OMDb\n\n'
+            + 'concert-this "<artist name>" -- searches for an upcoming concert for a given artist and returns the name of the venue, the venue location, and the date of the show\n\n'
+            + 'do-what-it-says -- reads the command written in random.txt and runs said command')
 }
